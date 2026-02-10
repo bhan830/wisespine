@@ -1,95 +1,113 @@
 #!/usr/bin/env python3
+"""
+baseline.py
+
+Process a single spine CT case to generate individual vertebrae masks.
+Can use existing segmentation masks from training/validation datasets.
+Outputs are saved to baseline_outputs/<case_name>/
+"""
+
 import os
-import subprocess
+import sys
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 import nibabel as nib
 import numpy as np
-import shutil
 
-# ----------------- CONFIG -----------------
-DATA_DIR = "/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-02validation/rawdata"
-OUTPUT_DIR = "/gscratch/scrubbed/bhan830/wisespine/baseline_outputs"
-TMP_DIR = "/gscratch/scrubbed/bhan830/wisespine/tmp"
-TOTALSEG_CMD = "TotalSegmentator"  # command-line TotalSegmentator
-TASK_NAME = "vertebrae_body"
-DEVICE = "cpu"  # use CPU since no GPU detected
-MAX_WORKERS = 2  # number of parallel threads
-STOP_ON_FIRST_SUCCESS = True  # stop after first successful segmentation
-# ------------------------------------------
+# -----------------------------
+# Configuration
+# -----------------------------
 
-Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-Path(TMP_DIR).mkdir(parents=True, exist_ok=True)
+# Case to process (change to your desired case)
+CASE_NAME = "sub-gl017"
 
-def process_case(case_folder: Path):
-    ct_file = next(case_folder.glob("*_ct.nii*"), None)
-    if ct_file is None:
-        print(f"⚠️ No CT file found in {case_folder}. Skipping.")
-        return False
+# Paths
+BASE_DIR = Path.cwd()
+DATA_DIR = BASE_DIR / "data" / "Verse20"
+OUTPUT_DIR = BASE_DIR / "baseline_outputs"
+OUTPUT_DIR.mkdir(exist_ok=True)
 
-    case_name = case_folder.name
-    print(f"\nProcessing {case_name} ...")
+# Training or validation datasets
+TRAIN_DIR = DATA_DIR / "dataset-01training" / "derivatives"
+VALID_DIR = DATA_DIR / "dataset-02validation" / "derivatives"
 
-    # temp output folder
-    tmp_case_dir = Path(TMP_DIR) / f"ts_{case_name}"
-    if tmp_case_dir.exists():
-        shutil.rmtree(tmp_case_dir)
-    tmp_case_dir.mkdir(parents=True, exist_ok=True)
+# -----------------------------
+# Helper functions
+# -----------------------------
 
-    # final binary mask output
-    mask_file = Path(OUTPUT_DIR) / f"{case_name}_vertebrae_mask.nii.gz"
+def find_segmentation(case_name):
+    """Look for existing segmentation mask in training or validation sets."""
+    # Check validation first
+    val_mask = VALID_DIR / case_name / f"{case_name}_seg-vert_msk.nii.gz"
+    train_mask = TRAIN_DIR / case_name / f"{case_name}_seg-vert_msk.nii.gz"
 
-    try:
-        # Run TotalSegmentator CLI
-        cmd = [
-            TOTALSEG_CMD,
-            "-i", str(ct_file),
-            "-o", str(tmp_case_dir),
-            "--task", TASK_NAME,
-            "--device", DEVICE,
-            "--ml"  # use machine learning model
-        ]
-        subprocess.run(cmd, check=True)
+    if val_mask.exists():
+        return val_mask
+    elif train_mask.exists():
+        return train_mask
+    else:
+        return None
 
-        # Look for per-vertebra files
-        vert_files = list(tmp_case_dir.glob("vertebrae_*.nii.gz"))
-        if not vert_files:
-            print(f"⚠️ No vertebrae_* files found for {case_name}. Skipping.")
-            return False
+def save_vertebrae_masks(seg_mask_path, output_dir):
+    """
+    Split the segmentation mask into individual vertebrae masks.
+    Assumes labels:
+      1-7: cervical (C1-C7)
+      8-19: thoracic (T1-T12)
+      20-25: lumbar (L1-L6)
+    """
+    img = nib.load(str(seg_mask_path))
+    data = img.get_fdata()
+    affine = img.affine
 
-        # Create a binary mask by combining all vertebrae masks
-        first_img = nib.load(vert_files[0])
-        combined_data = np.zeros(first_img.shape, dtype=np.uint8)
-        for vf in vert_files:
-            img = nib.load(vf)
-            combined_data[img.get_fdata() > 0] = 1
+    vertebra_labels = {
+        **{i: f"C{i}" for i in range(1, 8)},       # C1-C7
+        **{i: f"T{i-7}" for i in range(8, 20)},   # T1-T12
+        **{i: f"L{i-19}" for i in range(20, 26)} # L1-L6
+    }
 
-        # Save binary mask
-        binary_mask = nib.Nifti1Image(combined_data, affine=first_img.affine)
-        nib.save(binary_mask, mask_file)
-        print(f"✅ Saved binary vertebra mask for {case_name} at {mask_file}")
+    output_dir.mkdir(exist_ok=True, parents=True)
 
-        # Clean up temp folder
-        shutil.rmtree(tmp_case_dir)
+    saved_files = []
 
-        return True
+    for label, name in vertebra_labels.items():
+        mask_data = np.where(data == label, 1, 0).astype(np.uint8)
+        if mask_data.sum() == 0:
+            # Skip labels not present in this scan
+            continue
+        out_file = output_dir / f"{seg_mask_path.stem}_{name}.nii.gz"
+        nib.save(nib.Nifti1Image(mask_data, affine), str(out_file))
+        if out_file.exists():
+            print(f"✅ Saved {out_file.resolve()}")
+            saved_files.append(out_file.resolve())
+        else:
+            print(f"❌ Failed to save {out_file.resolve()}")
 
-    except subprocess.CalledProcessError as e:
-        print(f"⚠️ TotalSegmentator failed for {case_name}. Skipping.")
-        return False
+    if len(saved_files) == 0:
+        print(f"⚠️ No vertebrae masks were produced for {seg_mask_path.name}")
+    return saved_files
 
-# ----------------- MAIN -----------------
+# -----------------------------
+# Main processing
+# -----------------------------
+
 def main():
-    case_folders = [f for f in Path(DATA_DIR).iterdir() if f.is_dir()]
-    print(f"Found {len(case_folders)} cases in {DATA_DIR}")
+    print(f"🦴 Processing case: {CASE_NAME}")
 
-    success_found = False
+    seg_mask = find_segmentation(CASE_NAME)
+    if seg_mask is None:
+        print(f"❌ No segmentation mask found for {CASE_NAME} in training or validation sets.")
+        sys.exit(1)
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        for case_folder, result in zip(case_folders, executor.map(process_case, case_folders)):
-            if result and STOP_ON_FIRST_SUCCESS:
-                print("\nStopping after first successful case as configured.")
-                break
+    print(f"Found segmentation mask: {seg_mask.resolve()}")
+
+    case_output_dir = OUTPUT_DIR / CASE_NAME
+    saved_files = save_vertebrae_masks(seg_mask, case_output_dir)
+
+    if saved_files:
+        print(f"✅ Done! All masks saved to {case_output_dir.resolve()}")
+        print("These files can now be used to reconstruct the spine using TotalSegmentator or other tools.")
+    else:
+        print(f"⚠️ No masks saved for {CASE_NAME}. Check the segmentation mask file.")
 
 if __name__ == "__main__":
     main()
