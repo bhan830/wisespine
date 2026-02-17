@@ -1,0 +1,12 @@
+model,case,level,mask_path
+NNUnet Framework,sub-gl017,C1,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C1.nii.gz
+NNUnet Framework,sub-gl017,C2,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C2.nii.gz
+NNUnet Framework,sub-gl017,C3,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C3.nii.gz
+NNUnet Framework,sub-gl017,C4,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C4.nii.gz
+NNUnet Framework,sub-gl017,C5,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C5.nii.gz
+NNUnet Framework,sub-gl017,C6,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C6.nii.gz
+NNUnet Framework,sub-gl017,C7,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_C7.nii.gz
+NNUnet Framework,sub-gl017,T1,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_T1.nii.gz
+NNUnet Framework,sub-gl017,T2,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_T2.nii.gz
+NNUnet Framework,sub-gl017,T3,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_T3.nii.gz
+NNUnet Framework,sub-gl017,T4,/mmfs1/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/NNUnet Framework/sub-gl017/sub-gl017_NNUnet Framework_pred-vert_T4.nii.gz
