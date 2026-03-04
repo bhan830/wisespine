@@ -1,55 +1,85 @@
-# reconstruct.py
+#!/usr/bin/env python3
+
+import os
+import glob
+import shutil
 import nibabel as nib
 import numpy as np
-from pathlib import Path
 
-# ---------------------------
-# Adjust these paths
-# ---------------------------
-INPUT_DIR = "./baseline_outputs/sub-gl017"  # Folder containing individual vertebra masks
-OUTPUT_FILE = "./baseline_outputs/sub-gl017/sub-gl017_reconstructed.nii.gz"
-# ---------------------------
+# ==============================
+# CONFIG
+# ==============================
 
-# Define vertebra labels (same as Verse20 original)
-VERTS = {
-    "C1": 1, "C2": 2, "C3": 3, "C4": 4, "C5": 5, "C6": 6, "C7": 7,
-    "T1": 8, "T2": 9, "T3": 10, "T4": 11, "T5": 12, "T6": 13, "T7": 14,
-    "T8": 15, "T9": 16, "T10": 17, "T11": 18, "T12": 19,
-    "L1": 20, "L2": 21, "L3": 22, "L4": 23, "L5": 24, "L6": 25
-}
+CASE_NAME = "sub-gl017"  # <-- your case name
+MODEL_NAME = "TotalSegmentator"  # <-- model name
 
-def main():
-    input_dir = Path(INPUT_DIR)
-    output_file = Path(OUTPUT_FILE)
-    
-    # Find at least one mask to get the reference shape and affine
-    ref_mask_path = next(input_dir.glob("*.nii.gz"), None)
-    if ref_mask_path is None:
-        raise FileNotFoundError(f"No .nii.gz masks found in {input_dir}")
+MODELS_DIR = f"/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/{MODEL_NAME}/{CASE_NAME}"
+OUTPUT_DIR = f"/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/reconstructed/{MODEL_NAME}/{CASE_NAME}"
 
-    ref_img = nib.load(str(ref_mask_path))
-    shape = ref_img.shape
-    affine = ref_img.affine
-    header = ref_img.header
+PRESERVE_LABELS = True  # True = each vertebra gets unique label
 
-    # Initialize empty volume
-    reconstructed = np.zeros(shape, dtype=np.uint8)
+# ==============================
+# Spine Reconstruction
+# ==============================
 
-    # Load each vertebra mask and add to reconstructed volume
-    for vert_name, label in VERTS.items():
-        mask_file = input_dir / f"{ref_mask_path.stem.rsplit('_',1)[0]}_{vert_name}.nii.gz"
-        if not mask_file.exists():
-            print(f"⚠️ {vert_name} mask not found, skipping")
-            continue
+def reconstruct_spine(models_dir, output_dir, case_name, model_name):
 
-        mask_img = nib.load(str(mask_file))
-        mask_data = mask_img.get_fdata().astype(bool)
-        reconstructed[mask_data] = label
-        print(f"✅ Added {vert_name} to reconstructed volume")
+    # ---- Clear output directory ----
+    if os.path.exists(output_dir):
+        print(f"[INFO] Clearing existing output directory: {output_dir}")
+        shutil.rmtree(output_dir)
 
-    # Save reconstructed multi-label image
-    nib.save(nib.Nifti1Image(reconstructed, affine, header), str(output_file))
-    print(f"\n🎉 Reconstructed spine saved as {output_file}")
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"[INFO] Output directory ready: {output_dir}")
+
+    # Grab all individual vertebra masks
+    vertebra_files = sorted(
+        glob.glob(os.path.join(models_dir, "*vertebrae_*.nii.gz"))
+    )
+
+    # Optionally include sacrum
+    sacrum_file = glob.glob(os.path.join(models_dir, "*sacrum.nii.gz"))
+    if sacrum_file:
+        vertebra_files.extend(sacrum_file)
+
+    if not vertebra_files:
+        print("❌ No individual vertebra masks found.")
+        return
+
+    print(f"Found {len(vertebra_files)} vertebra masks.")
+
+    combined = None
+    affine = None
+    header = None
+
+    for idx, filepath in enumerate(vertebra_files, start=1):
+        print(f"Adding: {os.path.basename(filepath)}")
+        img = nib.load(filepath)
+        data = img.get_fdata()
+
+        if combined is None:
+            combined = np.zeros_like(data)
+            affine = img.affine
+            header = img.header
+
+        if PRESERVE_LABELS:
+            combined[data > 0] = idx
+        else:
+            combined[data > 0] = 1
+
+    # ---- Save union file with case name and model name ----
+    output_filename = f"{case_name}_{model_name}_spine_union.nii.gz"
+    output_path = os.path.join(output_dir, output_filename)
+
+    out_img = nib.Nifti1Image(combined.astype(np.uint16), affine, header)
+    nib.save(out_img, output_path)
+
+    print("\n✅ Spine reconstruction complete.")
+    print(f"Saved to: {output_path}")
+
+# ==============================
+# MAIN
+# ==============================
 
 if __name__ == "__main__":
-    main()
+    reconstruct_spine(MODELS_DIR, OUTPUT_DIR, CASE_NAME, MODEL_NAME)
