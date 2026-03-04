@@ -22,12 +22,12 @@ OUTPUT_CSV = "/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_output
 def dice_coefficient(pred, gt):
     intersection = np.logical_and(pred, gt).sum()
     total = pred.sum() + gt.sum()
-    return 2.0 * intersection / total if total > 0 else 1.0
+    return 2.0 * intersection / total if total > 0 else np.nan
 
 def iou_score(pred, gt):
     intersection = np.logical_and(pred, gt).sum()
     union = np.logical_or(pred, gt).sum()
-    return intersection / union if union > 0 else 1.0
+    return intersection / union if union > 0 else np.nan
 
 def load_nifti(path):
     return nib.load(path).get_fdata().astype(bool)
@@ -41,12 +41,13 @@ def main():
         os.remove(OUTPUT_CSV)
 
     # Load ground truth mask
-    gt_mask_img = nib.load(GROUND_TRUTH)
-    gt_mask = gt_mask_img.get_fdata().astype(int)
-
+    gt_mask = nib.load(GROUND_TRUTH).get_fdata()
+    
     # Load reconstructed spine
-    recon_img = nib.load(RECON_MASK)
-    recon_mask = recon_img.get_fdata().astype(bool)
+    if not os.path.exists(RECON_MASK):
+        print(f"❌ Reconstructed mask not found: {RECON_MASK}")
+        return
+    recon_mask = nib.load(RECON_MASK).get_fdata() > 0
 
     # Compute overall spine DICE / IoU
     spine_dice = dice_coefficient(recon_mask, gt_mask > 0)
@@ -60,47 +61,52 @@ def main():
         "spine reconstruction IoU": spine_iou
     }
 
-    # Find individual vertebra predictions
-    vert_files = sorted(glob.glob(os.path.join(INDIV_MASKS_DIR, f"{CASE_ID}_{MODEL_NAME}_vertebrae_*.nii.gz")))
+    # Define vertebra label mapping
+    label_mapping = {}
+    label_counter = 1
+    # C1-C7
+    for i in range(1, 8):
+        label_mapping[f"C{i}"] = label_counter
+        label_counter += 1
+    # T1-T12
+    for i in range(1, 13):
+        label_mapping[f"T{i}"] = label_counter
+        label_counter += 1
+    # L1-L5
+    for i in range(1, 6):
+        label_mapping[f"L{i}"] = label_counter
+        label_counter += 1
+    # S1
+    label_mapping["S1"] = label_counter
 
-    # Mapping vertebra names to GT label numbers
-    label_mapping = {
-        **{f"C{i}": i for i in range(1, 8)},        # C1-C7
-        **{f"T{i}": 7 + i for i in range(1, 13)},   # T1-T12
-        **{f"L{i}": 19 + i for i in range(1, 6)},   # L1-L5
-        "S1": 25,
-        "sacrum": 25
-    }
+    # Load individual vertebra masks
+    vert_files = sorted(glob.glob(os.path.join(INDIV_MASKS_DIR, f"{CASE_ID}_{MODEL_NAME}_vertebrae_*.nii.gz")))
 
     if not vert_files:
         print("❌ No individual vertebra masks found.")
     else:
         for vf in vert_files:
-            basename = os.path.basename(vf)
-            # Extract vertebra name (C1, T1, L1, etc.)
-            vert_name = basename.split(f"{CASE_ID}_{MODEL_NAME}_vertebrae_")[-1].replace(".nii.gz", "")
-            if vert_name.lower() == "sacrum":
-                vert_name = "sacrum"
-
+            vert_name = os.path.basename(vf).split(f"{CASE_ID}_{MODEL_NAME}_vertebrae_")[-1].replace(".nii.gz", "")
+            pred_mask = nib.load(vf).get_fdata() > 0
             gt_label = label_mapping.get(vert_name, None)
             if gt_label is None:
-                print(f"⚠️  Unknown vertebra {vert_name}, skipping.")
                 results[f"{vert_name} DICE"] = np.nan
                 results[f"{vert_name} IoU"] = np.nan
                 continue
-
-            pred_mask_img = nib.load(vf)
-            pred_mask = pred_mask_img.get_fdata().astype(bool)
-
-            gt_vert_mask = (gt_mask == gt_label)
-
-            results[f"{vert_name} DICE"] = dice_coefficient(pred_mask, gt_vert_mask)
-            results[f"{vert_name} IoU"] = iou_score(pred_mask, gt_vert_mask)
+            gt_vert_mask = gt_mask == gt_label
+            if gt_vert_mask.sum() == 0:
+                # Vertebra not present in GT, skip
+                results[f"{vert_name} DICE"] = np.nan
+                results[f"{vert_name} IoU"] = np.nan
+            else:
+                results[f"{vert_name} DICE"] = dice_coefficient(pred_mask, gt_vert_mask)
+                results[f"{vert_name} IoU"] = iou_score(pred_mask, gt_vert_mask)
 
     # Save results to CSV
     df = pd.DataFrame([results])
     df.to_csv(OUTPUT_CSV, index=False)
     print(f"✅ Evaluation complete. Results saved to {OUTPUT_CSV}")
+
 
 if __name__ == "__main__":
     main()
