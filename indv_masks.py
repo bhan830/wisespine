@@ -6,8 +6,8 @@ import shutil
 # ==============================
 # Configuration
 # ==============================
-CASES = ["sub-gl017", "sub-gl045", "sub-gl059", "sub-gl068", "sub-gl099"]
-RAWDATA_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-02validation/rawdata")
+CASES = ["sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124"]
+RAWDATA_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-01training/rawdata")
 MODELS_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/TotalSegmentator")
 MODEL_NAME = "TotalSegmentator"
 TASK = "vertebrae_mr"  # MR/CT spine model
@@ -73,7 +73,7 @@ def save_individual_masks(output_dir: Path, case: str):
 def main():
     for case in CASES:
         print(f"\n--- Processing case: {case} ---")
-        input_ct = RAWDATA_DIR / case / f"{case}_ct.nii.gz"
+        input_ct = RAWDATA_DIR / case / f"{case}_dir-ax_ct.nii.gz"
         output_dir = MODELS_BASE_DIR / case
 
         if not input_ct.exists():

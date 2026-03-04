@@ -11,9 +11,9 @@ from pathlib import Path
 # ==============================
 MODEL_NAME = "TotalSegmentator"
 # List of cases to evaluate
-CASES = ["sub-gl017", "sub-gl045", "sub-gl059", "sub-gl068", "sub-gl099"]
+CASES = ["sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124"]
 
-BASE_GT_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-02validation/derivatives")
+BASE_GT_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-01training/derivatives")
 BASE_MODELS_DIR = Path(f"/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/{MODEL_NAME}")
 BASE_RECON_DIR = Path(f"/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/reconstructed/{MODEL_NAME}")
 
@@ -57,7 +57,7 @@ def create_label_mapping():
 def evaluate_case(case_id, label_mapping):
     results = {"model": MODEL_NAME, "case": case_id}
 
-    gt_path = BASE_GT_DIR / case_id / f"{case_id}_seg-vert_msk.nii.gz"
+    gt_path = BASE_GT_DIR / case_id / f"{case_id}_dir-ax_seg-vert_msk.nii.gz"
     recon_path = BASE_RECON_DIR / case_id / f"{case_id}_{MODEL_NAME}_spine_union.nii.gz"
     indiv_mask_dir = BASE_MODELS_DIR / case_id
 
