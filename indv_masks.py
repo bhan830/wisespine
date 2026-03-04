@@ -3,26 +3,33 @@ import subprocess
 from pathlib import Path
 import shutil
 
-# -----------------------------
+# ==============================
 # Configuration
-# -----------------------------
-INPUT_CT = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-02validation/rawdata/sub-gl017/sub-gl017_ct.nii.gz")
-OUTPUT_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/TotalSegmentator/sub-gl017")
-CASE_NAME = "sub-gl017"
+# ==============================
+CASES = ["sub-gl017", "sub-gl045", "sub-gl059", "sub-gl068", "sub-gl099"]
+RAWDATA_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-02validation/rawdata")
+MODELS_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models/TotalSegmentator")
 MODEL_NAME = "TotalSegmentator"
-TASK = "vertebrae_mr"  # use the MR/CT spine model
+TASK = "vertebrae_mr"  # MR/CT spine model
 NR_THR_RESAMP = 4
 NR_THR_SAVING = 4
+CLEAR_EXISTING = False  # True = remove existing masks, False = skip cases that already have masks
 
-# -----------------------------
+# ==============================
 # Run TotalSegmentator
-# -----------------------------
-def run_totalsegmentator(input_ct: Path, output_dir: Path):
+# ==============================
+def run_totalsegmentator(input_ct: Path, output_dir: Path, case: str):
     """
     Run TotalSegmentator with HPC-safe CPU mode.
     """
-    # Clear previous output
-    if output_dir.exists():
+    # Skip if not clearing and folder already has masks
+    existing_masks = list(output_dir.glob(f"{case}_*.nii.gz"))
+    if output_dir.exists() and existing_masks and not CLEAR_EXISTING:
+        print(f"[INFO] Masks already exist for {case}. Skipping segmentation.")
+        return
+
+    # Clear previous output if requested
+    if output_dir.exists() and CLEAR_EXISTING:
         print(f"[INFO] Clearing existing output folder: {output_dir}")
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -38,36 +45,52 @@ def run_totalsegmentator(input_ct: Path, output_dir: Path):
     ]
 
     print("="*60)
-    print(f"Running vertebrae segmentation (HPC-safe mode)")
+    print(f"Running vertebrae segmentation (HPC-safe mode) for {input_ct.name}")
     print("="*60)
 
     subprocess.run(cmd, check=True)
 
-# -----------------------------
-# Save individual masks
-# -----------------------------
-def save_individual_masks(segmentation_path: Path, case_name: str):
+# ==============================
+# Rename individual masks
+# ==============================
+def save_individual_masks(output_dir: Path, case: str):
     """
-    Rename all vertebrae_* and sacrum.nii.gz masks to include the case name.
+    Rename all vertebrae_* and sacrum.nii.gz masks to include case name.
     """
-    masks = list(segmentation_path.glob("vertebrae_*.nii.gz")) + list(segmentation_path.glob("sacrum.nii.gz"))
+    masks = list(output_dir.glob("vertebrae_*.nii.gz")) + list(output_dir.glob("sacrum.nii.gz"))
     if not masks:
-        print("[WARNING] No vertebra masks found!")
+        print(f"[WARNING] No vertebra masks found for {case}!")
         return
 
     for mask_file in masks:
-        new_name = segmentation_path / f"{case_name}_{MODEL_NAME}_{mask_file.name}"
+        new_name = output_dir / f"{case}_{MODEL_NAME}_{mask_file.name}"
         mask_file.rename(new_name)
         print(f"[INFO] Renamed mask: {new_name}")
 
-# -----------------------------
+# ==============================
 # Main
-# -----------------------------
+# ==============================
 def main():
-    run_totalsegmentator(INPUT_CT, OUTPUT_DIR)
-    save_individual_masks(OUTPUT_DIR, CASE_NAME)
-    print("\n✅ All done. Outputs saved in:")
-    print(f"{OUTPUT_DIR}")
+    for case in CASES:
+        print(f"\n--- Processing case: {case} ---")
+        input_ct = RAWDATA_DIR / case / f"{case}_ct.nii.gz"
+        output_dir = MODELS_BASE_DIR / case
 
+        if not input_ct.exists():
+            print(f"[ERROR] Input CT not found for {case}: {input_ct}")
+            continue
+
+        try:
+            run_totalsegmentator(input_ct, output_dir, case)
+            save_individual_masks(output_dir, case)
+            print(f"[INFO] Finished case: {case}")
+        except subprocess.CalledProcessError:
+            print(f"[ERROR] TotalSegmentator failed for {case}. Check input and environment.")
+        except Exception as e:
+            print(f"[ERROR] Unexpected error for {case}: {e}")
+
+    print("\n✅ All cases processed.")
+
+# ==============================
 if __name__ == "__main__":
     main()
