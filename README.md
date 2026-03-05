@@ -19,20 +19,20 @@ The pipeline is configured for the VerSe20 training dataset.
 wisespine_new/
 │
 ├── baseline_outputs/
-│   ├── models/
-│   │   └── TotalSegmentator/
-│   │       └── sub-xxx/
-│   │           ├── sub-xxx_TotalSegmentator_vertebrae_*.nii.gz
-│   │           └── sub-xxx_TotalSegmentator_sacrum.nii.gz
-│   │
-│   ├── reconstructed/
-│   │   └── TotalSegmentator/
-│   │       └── sub-xxx/
-│   │           └── sub-xxx_TotalSegmentator_spine_union.nii.gz
-│   │
-│   └── evaluation_metrics.csv
+│ ├── models/
+│ │ └── TotalSegmentator/
+│ │ └── sub-xxx/
+│ │ ├── sub-xxx_TotalSegmentator_vertebrae_*.nii.gz
+│ │ └── sub-xxx_TotalSegmentator_sacrum.nii.gz
+│ │
+│ ├── reconstructed/
+│ │ └── TotalSegmentator/
+│ │ └── sub-xxx/
+│ │ └── sub-xxx_TotalSegmentator_spine_union.nii.gz
+│ │
+│ └── evaluation_metrics.csv
 │
 └── scripts/
-    ├── run_segmentation.py
-    ├── reconstruct_spine.py
-    └── evaluate_segmentation.py
+├── run_segmentation.py
+├── reconstruct_spine.py
+└── evaluate_segmentation.py
