@@ -254,7 +254,7 @@ baseline_outputs/centroids/<MODEL_NAME>/<CASE>/<CASE>_<MODEL_NAME>_centroids.jso
 This script:
 
 - Loads ground truth and predicted centroids  
-- Computes inter-vertebra distances (spacings) in mm  
+- Computes inter-vertebra distances (gaps) in mm  
 - Computes absolute error (mm) between predicted and ground truth spacings  
 - Saves results to CSV files
 
@@ -305,7 +305,7 @@ baseline_outputs/spacings_errors.csv
 1. **Centroid Extraction (`spacings.py`)**  
    - Load individual vertebra mask  
    - Compute voxel centroid  
-   - Convert to world coordinates using affine transformation  
+   - Convert to world coordinates (mm) using affine transformation  
 
 2. **Spacing Computation (`evaluate_spacings.py`)**  
    - Compute Euclidean distance between successive vertebra centroids  
@@ -313,7 +313,6 @@ baseline_outputs/spacings_errors.csv
 
 3. **Error Computation**  
    - Absolute error: `|predicted - ground_truth|`  
-   - Relative error (%): `abs_error / ground_truth * 100`  
 
 ---
 
