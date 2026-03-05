@@ -58,7 +58,7 @@ wisespine/
     │   └── spacings_errors.csv
     │
     └── scripts/
-        ├── run_segmentation.py
+        ├── segmentation.py
         ├── reconstruct_spine.py
         ├── evaluate_segmentation.py
         ├── spacings.py
@@ -91,7 +91,7 @@ pip install totalspineseg
 
 # Segmentation
 
-**Script:** `run_segmentation.py`
+**Script:** `segmentation.py`
 
 This script:
 
@@ -120,7 +120,7 @@ MODEL_NAMES = ["TotalSegmentator"]
 ## Run
 
 ```bash
-python run_segmentation.py
+python segmentation.py
 ```
 
 Outputs saved to:
