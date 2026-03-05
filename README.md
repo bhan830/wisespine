@@ -18,23 +18,40 @@ The pipeline is configured for the VerSe20 training dataset.
 ## 📂 Directory Structure
 
 ```
-wisespine_new/
-├── baseline_outputs/
-│   ├── models/
-│   │   └── TotalSegmentator/
-│   │       └── sub-xxx/
-│   │           ├── sub-xxx_TotalSegmentator_vertebrae_*.nii.gz
-│   │           └── sub-xxx_TotalSegmentator_sacrum.nii.gz
-│   │
-│   ├── reconstructed/
-│   │   └── TotalSegmentator/
-│   │       └── sub-xxx/
-│   │           └── sub-xxx_TotalSegmentator_spine_union.nii.gz
-│   │
-│   └── evaluation_metrics.csv
+wisespine/
+├── SAM-Med3D/
+├── TotalSegmentator/
+├── nnUNet/
+├── totalspineseg/
+├── data/
+│   └── Verse20/
+│       └── dataset-01training/
+│           ├── rawdata/
+│           │   └── sub-xxx/
+│           │       └── sub-xxx_dir-ax_ct.nii.gz
+│           │
+│           └── derivatives/
+│               └── sub-xxx/
+│                   ├── sub-xxx_dir-ax_seg-subreg_ctd.json
+│                   └── sub-xxx_dir-ax_seg-vert_msk.nii.gz
 │
-└── scripts/
-    ├── run_segmentation.py
-    ├── reconstruct_spine.py
-    └── evaluate_segmentation.py
+└── wisespine_new/
+    ├── baseline_outputs/
+    │   ├── models/
+    │   │   └── TotalSegmentator/
+    │   │       └── sub-xxx/
+    │   │           ├── sub-xxx_TotalSegmentator_vertebrae_*.nii.gz
+    │   │           └── sub-xxx_TotalSegmentator_sacrum.nii.gz
+    │   │
+    │   ├── reconstructed/
+    │   │   └── TotalSegmentator/
+    │   │       └── sub-xxx/
+    │   │           └── sub-xxx_TotalSegmentator_spine_union.nii.gz
+    │   │
+    │   └── evaluation_metrics.csv
+    │
+    └── scripts/
+        ├── run_segmentation.py
+        ├── reconstruct_spine.py
+        └── evaluate_segmentation.py
 ```
