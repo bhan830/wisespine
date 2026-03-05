@@ -5,13 +5,14 @@ This repository contains scripts for:
 - Running vertebra segmentation models  
 - Reconstructing full spine volumes from individual masks  
 - Evaluating predictions using DICE and IoU metrics  
+- Analyzing voxel spacing consistency  
 
 The current baseline implementation supports:
 
 - TotalSegmentator  
 - TotalSpineSeg (optional, if installed)
 
-The pipeline is configured for the VerSe20 training dataset.
+The pipeline is configured for the VerSe20 training dataset and is structured under `wisespine_new/`.
 
 ---
 
@@ -36,6 +37,12 @@ wisespine/
 │                   └── sub-xxx_dir-ax_seg-vert_msk.nii.gz
 │
 └── wisespine_new/
+    ├── README.md
+    ├── indv_masks.py
+    ├── reconstruct.py
+    ├── evaluation_metrics.py
+    ├── evaluate_spacings.py
+    ├── spacings.py
     ├── baseline_outputs/
     │   ├── models/
     │   │   └── TotalSegmentator/
@@ -50,11 +57,9 @@ wisespine/
     │   │
     │   └── evaluation_metrics.csv
     │
-    └── scripts/
-        ├── run_segmentation.py
-        ├── reconstruct_spine.py
-        └── evaluate_segmentation.py
+    └── __pycache__/
 ```
+
 ---
 
 # Requirements
@@ -81,7 +86,7 @@ pip install totalspineseg
 
 # Segmentation
 
-**Script:** `run_segmentation.py`
+**Script:** `indv_masks.py`
 
 This script:
 
@@ -110,7 +115,7 @@ MODEL_NAMES = ["TotalSegmentator"]
 ## Run
 
 ```bash
-python run_segmentation.py
+python indv_masks.py
 ```
 
 Outputs saved to:
@@ -123,7 +128,7 @@ baseline_outputs/models/<MODEL_NAME>/<CASE>/
 
 # Spine Reconstruction
 
-**Script:** `reconstruct_spine.py`
+**Script:** `reconstruct.py`
 
 This script:
 
@@ -153,14 +158,14 @@ If `False`:
 ## Run
 
 ```bash
-python reconstruct_spine.py
+python reconstruct.py
 ```
 
 ---
 
-# Evaluation Script
+# Segmentation Evaluation
 
-**Script:** `evaluate_segmentation.py`
+**Script:** `evaluation_metrics.py`
 
 This script:
 
@@ -185,7 +190,7 @@ The script maps:
 ## Run
 
 ```bash
-python evaluate_segmentation.py
+python evaluation_metrics.py
 ```
 
 Output:
@@ -196,13 +201,36 @@ baseline_outputs/evaluation_metrics.csv
 
 ---
 
+# Voxel Spacing Analysis
+
+**Scripts:**
+- `spacings.py`
+- `evaluate_spacings.py`
+
+These scripts analyze voxel spacing differences between:
+
+- Raw CT volumes  
+- Ground truth masks  
+- Model predictions  
+
+They are useful for debugging alignment issues and ensuring fair metric computation.
+
+## Run
+
+```bash
+python spacings.py
+python evaluate_spacings.py
+```
+
+---
+
 # Pipeline Overview
 
 ```
-Step 1 → Run segmentation model
-Step 2 → Rename & organize masks
-Step 3 → Reconstruct full spine
-Step 4 → Evaluate against ground truth
+Step 1 → Run segmentation (indv_masks.py)
+Step 2 → Reconstruct full spine (reconstruct.py)
+Step 3 → Evaluate segmentation metrics (evaluation_metrics.py)
+Step 4 → Analyze spacing consistency (optional)
 Step 5 → Export metrics CSV
 ```
 
@@ -235,6 +263,7 @@ Missing labels are recorded as `NaN`.
   sub-xxx_dir-ax_seg-vert_msk.nii.gz
   ```
 - Scripts assume VerSe20 directory structure.
+- Reconstruction assumes consistent voxel spacing across masks.
 
 ---
 
@@ -248,7 +277,7 @@ To add a new segmentation model:
 MODEL_NAMES = ["TotalSegmentator", "NewModel"]
 ```
 
-2. Implement a new function:
+2. Implement a new function inside `indv_masks.py`:
 
 ```python
 def run_new_model(...):
@@ -269,10 +298,11 @@ The rest of the pipeline (reconstruction + evaluation) will work automatically.
 
 This pipeline provides:
 
-- Automated batch segmentation
-- Structured output management
-- Spine reconstruction
-- Quantitative evaluation
-- CSV export of metrics
+- Automated batch segmentation  
+- Structured output management  
+- Spine reconstruction  
+- Quantitative evaluation  
+- Voxel spacing validation  
+- CSV export of metrics  
 
 It is modular, extendable, and ready for benchmarking additional spine segmentation models.
