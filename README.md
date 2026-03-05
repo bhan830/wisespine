@@ -1,18 +1,17 @@
-# WiseSpine Baseline Segmentation & Evaluation Pipeline
+# WiseSpine Baseline Segmentation, Reconstruction & Spacing Evaluation Pipeline
 
 This repository contains scripts for:
 
 - Running vertebra segmentation models  
 - Reconstructing full spine volumes from individual masks  
-- Evaluating predictions using DICE and IoU metrics  
-- Analyzing voxel spacing consistency  
+- Evaluating predictions using DICE, IoU, and vertebral spacing metrics  
 
 The current baseline implementation supports:
 
 - TotalSegmentator  
 - TotalSpineSeg (optional, if installed)
 
-The pipeline is configured for the VerSe20 training dataset and is structured under `wisespine_new/`.
+The pipeline is configured for the VerSe20 training dataset.
 
 ---
 
@@ -37,12 +36,6 @@ wisespine/
 │                   └── sub-xxx_dir-ax_seg-vert_msk.nii.gz
 │
 └── wisespine_new/
-    ├── README.md
-    ├── indv_masks.py
-    ├── reconstruct.py
-    ├── evaluation_metrics.py
-    ├── evaluate_spacings.py
-    ├── spacings.py
     ├── baseline_outputs/
     │   ├── models/
     │   │   └── TotalSegmentator/
@@ -55,9 +48,21 @@ wisespine/
     │   │       └── sub-xxx/
     │   │           └── sub-xxx_TotalSegmentator_spine_union.nii.gz
     │   │
-    │   └── evaluation_metrics.csv
+    │   ├── centroids/
+    │   │   └── TotalSegmentator/
+    │   │       └── sub-xxx/
+    │   │           └── sub-xxx_TotalSegmentator_centroids.json
+    │   │
+    │   ├── evaluation_metrics.csv
+    │   ├── spacings.csv
+    │   └── spacings_errors.csv
     │
-    └── __pycache__/
+    └── scripts/
+        ├── run_segmentation.py
+        ├── reconstruct_spine.py
+        ├── evaluate_segmentation.py
+        ├── spacings.py
+        └── evaluate_spacings.py
 ```
 
 ---
@@ -86,7 +91,7 @@ pip install totalspineseg
 
 # Segmentation
 
-**Script:** `indv_masks.py`
+**Script:** `run_segmentation.py`
 
 This script:
 
@@ -115,7 +120,7 @@ MODEL_NAMES = ["TotalSegmentator"]
 ## Run
 
 ```bash
-python indv_masks.py
+python run_segmentation.py
 ```
 
 Outputs saved to:
@@ -128,7 +133,7 @@ baseline_outputs/models/<MODEL_NAME>/<CASE>/
 
 # Spine Reconstruction
 
-**Script:** `reconstruct.py`
+**Script:** `reconstruct_spine.py`
 
 This script:
 
@@ -158,14 +163,14 @@ If `False`:
 ## Run
 
 ```bash
-python reconstruct.py
+python reconstruct_spine.py
 ```
 
 ---
 
-# Segmentation Evaluation
+# Evaluation Script
 
-**Script:** `evaluation_metrics.py`
+**Script:** `evaluate_segmentation.py`
 
 This script:
 
@@ -190,7 +195,7 @@ The script maps:
 ## Run
 
 ```bash
-python evaluation_metrics.py
+python evaluate_segmentation.py
 ```
 
 Output:
@@ -201,54 +206,128 @@ baseline_outputs/evaluation_metrics.csv
 
 ---
 
-# Voxel Spacing Analysis
+# Vertebral Spacing Analysis
 
-**Scripts:**
-- `spacings.py`
-- `evaluate_spacings.py`
+This section adds centroid extraction and inter-vertebra spacing evaluation.
 
-These scripts analyze voxel spacing differences between:
+---
 
-- Raw CT volumes  
-- Ground truth masks  
-- Model predictions  
+## 1. `spacings.py`
 
-They are useful for debugging alignment issues and ensuring fair metric computation.
+This script:
 
-## Run
+- Extracts vertebra centroids from predicted masks  
+- Converts voxel coordinates to world coordinates (mm)  
+- Saves JSON files containing centroids per case
+
+### Configuration
+
+```python
+MODEL_NAME = "TotalSegmentator"
+
+PRED_BASE = "/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models"
+OUTPUT_BASE = "/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/centroids"
+
+VERTEBRA_ORDER = [
+    "C1","C2","C3","C4","C5","C6","C7",
+    "T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12",
+    "L1","L2","L3","L4","L5"
+]
+```
+
+### Run
 
 ```bash
 python spacings.py
+```
+
+### Output
+
+```
+baseline_outputs/centroids/<MODEL_NAME>/<CASE>/<CASE>_<MODEL_NAME>_centroids.json
+```
+
+---
+
+## 2. `evaluate_spacings.py`
+
+This script:
+
+- Loads ground truth and predicted centroids  
+- Computes inter-vertebra distances (spacings) in mm  
+- Computes absolute error (mm) between predicted and ground truth spacings  
+- Saves results to CSV files
+
+### Configuration
+
+```python
+MODEL_NAME = "TotalSegmentator"
+
+GT_BASE = "/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-01training/derivatives"
+PRED_BASE = "/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/centroids/TotalSegmentator"
+OUTPUT_BASE = "/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs"
+
+CASES = ["sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124"]
+
+VERTEBRAE = [
+    "C1","C2","C3","C4","C5","C6","C7",
+    "T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12",
+    "L1","L2","L3","L4","L5"
+]
+
+SPACING_LABELS = [f"{VERTEBRAE[i]}-{VERTEBRAE[i+1]}" for i in range(len(VERTEBRAE)-1)]
+```
+
+### Run
+
+```bash
 python evaluate_spacings.py
 ```
+
+### Output
+
+1. **Predicted spacings CSV**
+
+```
+baseline_outputs/spacings.csv
+```
+
+2. **Absolute error CSV**
+
+```
+baseline_outputs/spacings_errors.csv
+```
+
+---
+
+## Methodology
+
+1. **Centroid Extraction (`spacings.py`)**  
+   - Load individual vertebra mask  
+   - Compute voxel centroid  
+   - Convert to world coordinates using affine transformation  
+
+2. **Spacing Computation (`evaluate_spacings.py`)**  
+   - Compute Euclidean distance between successive vertebra centroids  
+   - Convert voxel distances to mm using voxel size from CT header  
+
+3. **Error Computation**  
+   - Absolute error: `|predicted - ground_truth|`  
+   - Relative error (%): `abs_error / ground_truth * 100`  
 
 ---
 
 # Pipeline Overview
 
 ```
-Step 1 → Run segmentation (indv_masks.py)
-Step 2 → Reconstruct full spine (reconstruct.py)
-Step 3 → Evaluate segmentation metrics (evaluation_metrics.py)
-Step 4 → Analyze spacing consistency (optional)
-Step 5 → Export metrics CSV
+Step 1 → Run segmentation model
+Step 2 → Rename & organize masks
+Step 3 → Reconstruct full spine
+Step 4 → Extract vertebra centroids
+Step 5 → Compute spacings & errors
+Step 6 → Evaluate against ground truth (DICE & IoU)
+Step 7 → Export metrics CSV
 ```
-
----
-
-# Evaluation Details
-
-For each case:
-
-## Spine-level Metrics
-- DICE (union spine vs GT spine)
-- IoU
-
-## Vertebra-level Metrics
-- DICE per vertebra
-- IoU per vertebra
-
-Missing labels are recorded as `NaN`.
 
 ---
 
@@ -263,7 +342,6 @@ Missing labels are recorded as `NaN`.
   sub-xxx_dir-ax_seg-vert_msk.nii.gz
   ```
 - Scripts assume VerSe20 directory structure.
-- Reconstruction assumes consistent voxel spacing across masks.
 
 ---
 
@@ -277,7 +355,7 @@ To add a new segmentation model:
 MODEL_NAMES = ["TotalSegmentator", "NewModel"]
 ```
 
-2. Implement a new function inside `indv_masks.py`:
+2. Implement a new function:
 
 ```python
 def run_new_model(...):
@@ -290,7 +368,7 @@ def run_new_model(...):
 {case}_{model}_vertebrae_*.nii.gz
 ```
 
-The rest of the pipeline (reconstruction + evaluation) will work automatically.
+The rest of the pipeline (reconstruction + evaluation + spacing) will work automatically.
 
 ---
 
@@ -298,11 +376,11 @@ The rest of the pipeline (reconstruction + evaluation) will work automatically.
 
 This pipeline provides:
 
-- Automated batch segmentation  
-- Structured output management  
-- Spine reconstruction  
-- Quantitative evaluation  
-- Voxel spacing validation  
-- CSV export of metrics  
+- Automated batch segmentation
+- Structured output management
+- Spine reconstruction
+- Centroid extraction & spacing analysis
+- Quantitative evaluation (DICE, IoU, spacing errors)
+- CSV export of metrics
 
 It is modular, extendable, and ready for benchmarking additional spine segmentation models.
