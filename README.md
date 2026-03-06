@@ -15,7 +15,7 @@ The pipeline is configured for the VerSe20 training dataset.
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 
 ```
 wisespine/
