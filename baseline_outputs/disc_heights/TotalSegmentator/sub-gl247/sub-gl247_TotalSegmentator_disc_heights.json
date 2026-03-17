@@ -1,0 +1,58 @@
+[
+    {
+        "vertebra_pair": "C1-C2",
+        "distance_mm": 17.001981817997585
+    },
+    {
+        "vertebra_pair": "C2-C3",
+        "distance_mm": 1.3230863240954556
+    },
+    {
+        "vertebra_pair": "C3-C4",
+        "distance_mm": 1.3230863240954556
+    },
+    {
+        "vertebra_pair": "C4-C5",
+        "distance_mm": 1.5214235715387416
+    },
+    {
+        "vertebra_pair": "C5-C6",
+        "distance_mm": 0.867311757117186
+    },
+    {
+        "vertebra_pair": "C6-C7",
+        "distance_mm": 0.867311757117186
+    },
+    {
+        "vertebra_pair": "C7-T1",
+        "distance_mm": 8.884491725459387
+    },
+    {
+        "vertebra_pair": "T1-T2",
+        "distance_mm": 3.3730511367321014
+    },
+    {
+        "vertebra_pair": "T2-T3",
+        "distance_mm": 3.993606478753825
+    },
+    {
+        "vertebra_pair": "T3-T4",
+        "distance_mm": 6.588268070925362
+    },
+    {
+        "vertebra_pair": "T4-T5",
+        "distance_mm": 2.592323967508896
+    },
+    {
+        "vertebra_pair": "T5-T6",
+        "distance_mm": 12.968069058867403
+    },
+    {
+        "vertebra_pair": "T6-T7",
+        "distance_mm": 3.75
+    },
+    {
+        "vertebra_pair": "T7-T8",
+        "distance_mm": 5.046795374544232
+    }
+]

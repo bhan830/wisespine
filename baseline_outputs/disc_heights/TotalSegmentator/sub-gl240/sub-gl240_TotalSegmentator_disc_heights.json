@@ -1,0 +1,46 @@
+[
+    {
+        "vertebra_pair": "C1-C2",
+        "distance_mm": -42.5
+    },
+    {
+        "vertebra_pair": "C2-C3",
+        "distance_mm": -55.0
+    },
+    {
+        "vertebra_pair": "C3-C4",
+        "distance_mm": -37.5
+    },
+    {
+        "vertebra_pair": "C4-C5",
+        "distance_mm": -40.0
+    },
+    {
+        "vertebra_pair": "C5-C6",
+        "distance_mm": -38.75
+    },
+    {
+        "vertebra_pair": "C6-C7",
+        "distance_mm": -41.25
+    },
+    {
+        "vertebra_pair": "C7-T1",
+        "distance_mm": -48.75
+    },
+    {
+        "vertebra_pair": "T1-T2",
+        "distance_mm": -52.5
+    },
+    {
+        "vertebra_pair": "T2-T3",
+        "distance_mm": -53.75
+    },
+    {
+        "vertebra_pair": "T3-T4",
+        "distance_mm": -53.75
+    },
+    {
+        "vertebra_pair": "T4-T5",
+        "distance_mm": -33.75
+    }
+]

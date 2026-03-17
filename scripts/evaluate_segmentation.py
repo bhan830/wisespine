@@ -5,8 +5,9 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from segmentation import CASES
+from segmentation import get_case_list
 
+case_list = get_case_list()
 # ==============================
 # CONFIG
 # ==============================
@@ -103,7 +104,7 @@ def main():
     label_mapping = create_label_mapping()
     all_results = []
 
-    for case_id in CASES:
+    for case_id in case_list:
         print(f"\n--- Evaluating case: {case_id} ---")
         case_results = evaluate_case(case_id, label_mapping)
         if case_results is not None:

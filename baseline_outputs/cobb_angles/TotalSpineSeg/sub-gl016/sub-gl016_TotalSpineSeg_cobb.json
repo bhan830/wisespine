@@ -1,0 +1,7 @@
+{
+    "case": "sub-gl016",
+    "model": "TotalSpineSeg",
+    "upper_vertebra": "C7",
+    "lower_vertebra": "T12",
+    "cobb_angle": 179.9665852518965
+}

@@ -10,17 +10,16 @@ import importlib
 
 # If True → automatically process ALL cases in training dataset
 # If False → only process cases listed in CASES
-RUN_ALL_TRAINING_CASES = True
+RUN_ALL_TRAINING_CASES = False
 
 CASES = [
-    "sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124",
-    "sub-gl240", "sub-gl247", "sub-gl295", "sub-gl364", "sub-gl453"
+    "sub-gl003"
 ]
 
 RAWDATA_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/data/Verse20/dataset-01training/rawdata")
 MODELS_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models")
 
-MODEL_NAMES = ["TotalSegmentator"]
+MODEL_NAMES = ["TotalSegmentator", "TotalSpineSeg"]
 
 CLEAR_EXISTING = False  # True = remove existing masks, False = skip if already exist
 
@@ -148,7 +147,6 @@ def main():
                 print(f"[ERROR] Segmentation failed for {case} ({model_name})")
             except Exception as e:
                 print(f"[ERROR] Unexpected error for {case}: {e}")
-
     print("\n✅ All models processed.")
 
 

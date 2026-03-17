@@ -1,0 +1,7 @@
+{
+    "case": "sub-gl047",
+    "model": "TotalSegmentator",
+    "upper_vertebra": "C2",
+    "lower_vertebra": "T6",
+    "cobb_angle": 39.056453862144025
+}
