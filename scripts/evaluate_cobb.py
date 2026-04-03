@@ -7,7 +7,7 @@ from pathlib import Path
 # ==============================
 # CONFIGURATION
 # ==============================
-RUN_ALL_CASES = False
+RUN_ALL_CASES = True
 CASES = ["sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124"]
 
 MODELS_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models")

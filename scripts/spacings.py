@@ -9,14 +9,14 @@ from scipy.ndimage import binary_erosion
 # ==============================
 # CONFIGURATION
 # ==============================
-RUN_ALL_CASES = False  # True → process all folders in CURRENT_DIR
+RUN_ALL_CASES = True  # True → process all folders in CURRENT_DIR
 CASES = ["sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124"]  # Only used if RUN_ALL_CASES=False
 
 MODELS_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models")
 OUTPUT_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/disc_heights")
 
 MODEL_NAMES = ["TotalSegmentator", "TotalSpineSeg"]
-CLEAR_EXISTING = True  # If True, overwrites existing JSON
+CLEAR_EXISTING = False  # If True, overwrites existing JSON
 
 VERTEBRA_ORDER = [
     "C1","C2","C3","C4","C5","C6","C7",

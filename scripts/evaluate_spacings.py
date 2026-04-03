@@ -7,8 +7,7 @@ from pathlib import Path
 # CONFIG
 # ==============================
 
-CASES = ["sub-gl003", "sub-gl016", "sub-gl047"]
-MODELS = ["TotalSegmentator"]
+MODELS = ["TotalSegmentator"]  # You can add more models here if needed
 
 PRED_JSON_BASE = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/disc_heights")
 OUTPUT_BASE = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs")
@@ -33,6 +32,13 @@ def load_json(path):
         data = json.load(f)
     return {d["vertebra_pair"]: d["distance_mm"] for d in data}
 
+def get_all_cases(model_name):
+    """Automatically get all case folders for a given model."""
+    model_dir = PRED_JSON_BASE / model_name
+    if not model_dir.exists():
+        return []
+    return sorted([p.name for p in model_dir.iterdir() if p.is_dir()])
+
 # ==============================
 # MAIN
 # ==============================
@@ -41,7 +47,12 @@ def main():
     spacing_rows = []
 
     for model in MODELS:
-        for case in CASES:
+        case_list = get_all_cases(model)
+        if not case_list:
+            print(f"[WARN] No cases found for model {model}")
+            continue
+
+        for case in case_list:
             print(f"\nProcessing {case} ({model})")
 
             pred_json = PRED_JSON_BASE / model / case / f"{case}_{model}_disc_heights.json"
@@ -51,7 +62,6 @@ def main():
 
             for label in SPACING_LABELS:
                 val = pred.get(label)
-
                 if val is None or val < 0:
                     row.append("")
                 else:
@@ -61,7 +71,6 @@ def main():
 
     # Write CSV
     header = ["case", "model"] + SPACING_LABELS
-
     output_file = OUTPUT_BASE / "spacings.csv"
     with open(output_file, "w", newline="") as f:
         csv.writer(f).writerows([header] + spacing_rows)

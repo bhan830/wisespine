@@ -5,17 +5,19 @@ import numpy as np
 import nibabel as nib
 from pathlib import Path
 from itertools import combinations
+import gc
 
 # ==============================
 # CONFIGURATION
 # ==============================
-RUN_ALL_CASES = False
+RUN_ALL_CASES = True
 CASES = ["sub-gl003", "sub-gl016", "sub-gl047", "sub-gl090", "sub-gl124"]
 
 MODELS_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/models")
 OUTPUT_BASE_DIR = Path("/gscratch/scrubbed/bhan830/wisespine/wisespine_new/baseline_outputs/cobb_angles")
 
 MODEL_NAMES = ["TotalSegmentator"]
+CLEAR_EXISTING = False  # True → overwrite existing JSON
 
 VERTEBRAE = [
     "C1","C2","C3","C4","C5","C6","C7",
@@ -23,7 +25,8 @@ VERTEBRAE = [
     "L1","L2","L3","L4","L5"
 ]
 
-MIN_VERTEBRA_POINTS = 10  # minimal points for plane fitting
+MIN_VERTEBRA_POINTS = 10   # minimal points for plane fitting
+MAX_MASK_POINTS = 5000     # downsample large masks for memory efficiency
 
 # ==============================
 # HELPERS
@@ -38,14 +41,18 @@ def get_case_list(model_dir):
         return CASES
 
 def load_mask(mask_path):
-    """Load a vertebra mask and return coordinates in world space."""
+    """Load vertebra mask and return world coordinates, downsample if too large."""
     if not mask_path.exists():
         return None
     img = nib.load(mask_path)
     data = img.get_fdata()
-    coords = np.column_stack(np.where(data > 0))
+    coords = np.column_stack(np.where(data > 0)).astype(np.float32)
     if coords.shape[0] < MIN_VERTEBRA_POINTS:
         return None
+    # Downsample large masks to save memory
+    if coords.shape[0] > MAX_MASK_POINTS:
+        idx = np.random.choice(coords.shape[0], MAX_MASK_POINTS, replace=False)
+        coords = coords[idx, :]
     return nib.affines.apply_affine(img.affine, coords)
 
 def fit_plane(coords):
@@ -68,12 +75,12 @@ def get_endplate_planes(coords):
     return {"top": (n_top, c_top), "bottom": (n_bottom, c_bottom)}
 
 def plane_angle(n1, n2):
-    """Angle between two plane normals in degrees."""
+    """Compute angle between two plane normals in degrees."""
     cos_theta = np.clip(np.dot(n1, n2)/(np.linalg.norm(n1)*np.linalg.norm(n2)), -1, 1)
     return np.degrees(np.arccos(cos_theta))
 
 def extract_planes(case_dir, model_name, case):
-    """Extract endplate planes for all vertebrae of a case."""
+    """Extract top/bottom planes for all vertebrae in a case."""
     planes = {}
     for v in VERTEBRAE:
         mask_file = case_dir / f"{case}_{model_name}_vertebrae_{v}.nii.gz"
@@ -81,10 +88,11 @@ def extract_planes(case_dir, model_name, case):
         if coords is None:
             continue
         planes[v] = get_endplate_planes(coords)
+        del coords  # free memory early
     return planes
 
 def find_max_cobb(planes):
-    """Find the vertebra pair producing max Cobb angle."""
+    """Find the vertebra pair with maximum Cobb angle."""
     max_angle = 0
     upper_v, lower_v = None, None
     for v1, v2 in combinations(planes.keys(), 2):
@@ -99,20 +107,27 @@ def find_max_cobb(planes):
     return upper_v, lower_v, max_angle
 
 # ==============================
-# MAIN
+# MAIN PROCESSING
 # ==============================
 def process_case(model_name, case):
-    print(f"\nProcessing {case} ({model_name})...")
     case_dir = MODELS_BASE_DIR / model_name / case
     output_dir = OUTPUT_BASE_DIR / model_name / case
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{case}_{model_name}_cobb.json"
 
+    # Skip completed cases unless CLEAR_EXISTING
+    if output_file.exists() and not CLEAR_EXISTING:
+        print(f"[INFO] Cobb JSON already exists for {case} ({model_name}). Skipping.")
+        return
+
+    print(f"\nProcessing {case} ({model_name})...")
     planes = extract_planes(case_dir, model_name, case)
     if len(planes) < 2:
         print(f"[WARN] Not enough vertebrae for Cobb calculation in {case}")
         with open(output_file, "w") as f:
             json.dump([], f)
+        del planes
+        gc.collect()
         return
 
     upper, lower, angle = find_max_cobb(planes)
@@ -129,6 +144,10 @@ def process_case(model_name, case):
     with open(output_file, "w") as f:
         json.dump(results, f, indent=4)
     print(f"[INFO] Saved Cobb angle JSON to {output_file}")
+
+    # Clean up memory
+    del planes
+    gc.collect()
 
 def main():
     for model_name in MODEL_NAMES:
